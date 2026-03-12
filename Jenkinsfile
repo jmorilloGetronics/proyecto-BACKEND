@@ -1,28 +1,40 @@
 pipeline {
-    agent {
-        label 'principal' // Volvemos al que pide tu tutor
-    }
+    agent any
 
-    environment {
-        TOOL_TYPE       = 'MAVEN'
-        JAVA_VERSION    = '17'
-        SONAR_PROJECT   = 'proyecto-leo-backend'
+    tools {
+        maven 'Maven 3.x' // Esto depende de cómo se llame el Maven en el Jenkins de tu empresa
+        jdk 'Java 17'     // Y esto del nombre que le hayan puesto al Java
     }
 
     stages {
         stage('Checkout') {
             steps {
+                // Baja el código de GitLab
                 checkout scm
             }
         }
 
         stage('Build & Test') {
             steps {
-                // En el Jenkins de la empresa, esto suele llamar a sus scripts internos
-                echo "Compilando y testeando en entorno seguro..."
-                // Si te dejan usar comandos directos, sería:
-                // sh 'mvn clean test'
+                // Compila y pasa los tests
+                sh 'mvn clean package'
             }
+        }
+
+        stage('Archivar Artefacto') {
+            steps {
+                // Guarda el .jar para que no se pierda
+                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo '¡Vamooo! El pipeline ha terminado con éxito.'
+        }
+        failure {
+            echo 'Algo ha petado, revisa los logs.'
         }
     }
 }
