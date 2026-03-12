@@ -1,0 +1,25 @@
+# Compilados y binarios
+target/
+*.class
+*.war
+*.ear
+*.jar
+
+# Logs
+*.log
+
+# Archivos de IDE (IntelliJ, Eclipse, VS Code)
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Reportes de cobertura y Jenkins temporales
+bin/
+build/
