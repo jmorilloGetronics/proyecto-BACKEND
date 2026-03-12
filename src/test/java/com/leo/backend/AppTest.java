@@ -1,28 +1,28 @@
 package com.leo.backend;
 
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
-public class AppTest {
+@SpringBootTest
+class AppTest {
+
+    @Autowired
+    private CocheController cocheController;
 
     @Test
-    void testGetSaludo() {
-        // Arrange (Preparar) - En este caso es directo
-        
-        // Act (Actuar)
-        String resultado = App.getSaludo();
-        
-        // Assert (Verificar)
-        assertEquals("Hola Mundo!", resultado, "El saludo debería ser exacto");
+    void contextLoads() {
+        // Verifica que el controlador se ha creado correctamente
+        assertNotNull(cocheController);
     }
 
     @Test
-    void testSuma() {
-        App miApp = new App();
-        
-        int resultado = miApp.sumar(2, 3);
-        
-        // Verificamos que 2 + 3 sea 5
-        assertEquals(5, resultado, "La suma de 2 + 3 debe ser 5");
+    void testApiDevuelveCoches() {
+        // Verifica que el método del controlador devuelve datos
+        var coches = cocheController.getTodosLosCoches();
+        assertNotNull(coches);
+        assertFalse(coches.isEmpty(), "El catálogo de coches no debería estar vacío");
     }
 }

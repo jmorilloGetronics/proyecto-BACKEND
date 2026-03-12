@@ -1,17 +1,11 @@
 package com.leo.backend;
 
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
 public class App {
     public static void main(String[] args) {
-        System.out.println(getSaludo());
-    }
-
-    // Un método simple que devuelve un String
-    public static String getSaludo() {
-        return "Hola Mundo!";
-    }
-
-    // Un método que suma dos números
-    public int sumar(int a, int b) {
-        return a + b;
+        SpringApplication.run(App.class, args);
     }
 }
