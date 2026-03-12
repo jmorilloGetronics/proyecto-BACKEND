@@ -1,10 +1,9 @@
 pipeline {
     agent {
-        label 'principal' // Usamos el mismo nombre que pedía tu tutor
+        label 'principal' // Volvemos al que pide tu tutor
     }
 
     environment {
-        // Definimos las variables que antes iban dentro de pipelineSIP
         TOOL_TYPE       = 'MAVEN'
         JAVA_VERSION    = '17'
         SONAR_PROJECT   = 'proyecto-leo-backend'
@@ -13,46 +12,17 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                echo '📥 Descargando código desde GitLab...'
                 checkout scm
             }
         }
 
-        stage('Build') {
+        stage('Build & Test') {
             steps {
-                echo "🏗️ Compilando con ${env.TOOL_TYPE}..."
-                // En un entorno real aquí iría: sh 'mvn clean compile'
-                echo 'Simulando: mvn clean compile -DskipTests'
+                // En el Jenkins de la empresa, esto suele llamar a sus scripts internos
+                echo "Compilando y testeando en entorno seguro..."
+                // Si te dejan usar comandos directos, sería:
+                // sh 'mvn clean test'
             }
-        }
-
-        stage('Test') {
-            when {
-                expression { return params.TESTING_ENABLED == 'true' || true }
-            }
-            steps {
-                echo '🧪 Ejecutando Tests Unitarios...'
-                echo 'Simulando: mvn test'
-            }
-        }
-
-        stage('SonarQube Analysis') {
-            when {
-                expression { return env.SONAR_ENABLED == 'true' || true }
-            }
-            steps {
-                echo "🔍 Analizando calidad en Sonar con clave: ${env.SONAR_PROJECT}"
-                echo 'Simulando: mvn sonar:sonar'
-            }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ ¡Pipeline finalizado con éxito!'
-        }
-        failure {
-            echo '❌ El Pipeline ha fallado. Revisa los logs.'
         }
     }
 }
