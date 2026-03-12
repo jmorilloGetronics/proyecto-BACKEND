@@ -1,29 +1,89 @@
-# 🚀 Backend Service - Lab Becarios
+# Proyecto Leo Backend
 
-Este repositorio contiene la lógica del lado del servidor para el proyecto de pruebas de integración continua. Está diseñado para integrarse automáticamente con la infraestructura de Jenkins y SonarQube de la organización.
+Backend REST del proyecto Concesionario Leo. Expone una API de coches en Spring Boot para ser consumida desde el repositorio de frontend.
 
-## 🛠 Tecnologías y Stack
-* **Lenguaje:** Java 17 (OpenJDK)
-* **Gestor de Construcción:** Maven
-* **Análisis de Calidad:** SonarQube
-* **Reporte de Cobertura:** JaCoCo (v0.8.8)
+## Tecnologias
+- Java 17
+- Spring Boot 3.2
+- Maven
+- JUnit 5
 
-## 🔄 Pipeline de CI/CD (Jenkins)
-El proyecto utiliza una **Shared Library** corporativa que automatiza las siguientes fases:
+## Requisitos
+- JDK 17 instalado
+- Maven instalado
+- Puerto 8080 libre
 
-1. **Test Unitarios:** Ejecución de pruebas mediante `maven-surefire-plugin` con la opción `-fae` (fail at end) para obtener un reporte completo.
-2. **Code Quality:** Escaneo estático en SonarQube buscando vulnerabilidades y code smells.
-3. **Security Scan:** Análisis de dependencias con `OWASP Dependency Check` para detectar librerías obsoletas o peligrosas.
-4. **Coverage:** Generación de informes XML de cobertura de código para su visualización en el dashboard de calidad.
+## Arranque en local
+```bash
+mvn spring-boot:run
+```
 
-## 📋 Requisitos para el correcto funcionamiento
-Para que el pipeline de Jenkins no falle, este repositorio mantiene:
-* Un archivo `pom.xml` en la raíz con las dependencias necesarias.
-* Un `Jenkinsfile` que define la variable `TOOL = 'MAVEN'`.
-* Tests unitarios bajo la ruta estándar `src/test/java`.
+La API queda disponible en:
+- http://localhost:8080/api/coches
 
-## ⚙️ Variables de Entorno Clave
-El pipeline espera las siguientes configuraciones (gestionadas en el Jenkinsfile):
-* `JDK_VERSION`: 'OpenJDK 17u13'
-* `MAVEN_VERSION`: Versión configurada en el entorno global de Jenkins.
-* `SONAR_KEY`: Identificador único del proyecto en SonarQube.
+## Pruebas
+```bash
+mvn test
+```
+
+Tests actuales:
+- Carga de contexto Spring
+- Validacion de respuesta no vacia del catalogo de coches
+
+## Build
+```bash
+mvn clean package
+```
+
+Artefacto generado:
+- target/proyecto-leo-backend-1.0-SNAPSHOT.jar
+
+Ejecucion del jar:
+```bash
+java -jar target/proyecto-leo-backend-1.0-SNAPSHOT.jar
+```
+
+## Endpoints
+
+### GET /api/coches
+Devuelve el catalogo de coches.
+
+Ejemplo de respuesta:
+```json
+[
+	{
+		"id": "1",
+		"marca": "Toyota",
+		"modelo": "Corolla",
+		"precio": 25000,
+		"enStock": true
+	}
+]
+```
+
+### GET /api/coches/{id}
+Devuelve un mensaje de ejemplo con el id solicitado.
+
+## CI/CD (GitLab + Jenkins)
+Este repositorio se integra con Jenkins mediante Shared Library corporativa y Jenkinsfile en raiz.
+
+Puntos importantes:
+- El repo incluye pom.xml en la raiz.
+- Se usa TOOL = 'MAVEN'.
+- El pipeline de empresa esperado es pipelineEmpresaJava.
+- Si el job no es multibranch, configurar la rama objetivo en Jenkins (por ejemplo pruebaN1Leo).
+
+## Estructura principal
+```text
+src/main/java/com/leo/backend/
+	App.java
+	Coche.java
+	CocheController.java
+
+src/test/java/com/leo/backend/
+	AppTest.java
+```
+
+## Notas
+- CORS esta habilitado en el controlador para permitir consumo desde frontend.
+- application.properties existe pero esta vacio (configuracion por defecto de Spring Boot).
