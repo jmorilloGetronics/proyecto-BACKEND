@@ -1,4 +1,4 @@
-package com.leo.backend;
+package com.leo.backend.model;
 
 public class Coche {
     private String id;
