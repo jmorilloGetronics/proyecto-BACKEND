@@ -1,96 +1,174 @@
 package com.leo.backend;
 
-import com.leo.backend.controller.CocheController;
-import com.leo.backend.model.Coche;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 class AppTest {
 
     @Autowired
-    private CocheController cocheController;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void contextLoads() {
-        // Verifica que el controlador se ha creado correctamente
-        assertNotNull(cocheController);
+        assertNotNull(mockMvc);
     }
 
     @Test
-    void testUsuarioPuedeConsultarCatalogo() {
-        var loginResponse = cocheController.login(new CocheController.LoginRequest("usuario", "password"));
-        assertEquals("USER", loginResponse.role());
+    void testUsuarioPuedeConsultarCatalogo() throws Exception {
+        String token = loginYObtenerToken("usuario", "password", "USER");
 
-        var coches = cocheController.getTodosLosCoches("Bearer " + loginResponse.token());
-        assertNotNull(coches);
-        assertFalse(coches.isEmpty(), "El catálogo de coches no debería estar vacío");
+        mockMvc.perform(get("/api/coches")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").exists())
+            .andExpect(jsonPath("$[0].marca").exists());
     }
 
     @Test
-    void testApiSinTokenDaError() {
-        ResponseStatusException exception = assertThrows(
-            ResponseStatusException.class,
-            () -> cocheController.getTodosLosCoches(null)
-        );
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    void testApiSinTokenDaError() throws Exception {
+        mockMvc.perform(get("/api/coches"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.message").value("Token no proporcionado"));
     }
 
     @Test
-    void testUsuarioNoPuedeCrearCoches() {
-        var loginResponse = cocheController.login(new CocheController.LoginRequest("usuario", "password"));
-        String authHeader = "Bearer " + loginResponse.token();
+    void testUsuarioNoPuedeCrearCoches() throws Exception {
+        String token = loginYObtenerToken("usuario", "password", "USER");
 
-        ResponseStatusException exception = assertThrows(
-            ResponseStatusException.class,
-            () -> cocheController.crearCoche(new CocheController.CocheRequest("BMW", "Serie 1", 28000, true), authHeader)
-        );
+        String payload = """
+            {
+              "marca": "BMW",
+              "modelo": "Serie 1",
+              "precio": 28000,
+              "enStock": true
+            }
+            """;
 
-        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        mockMvc.perform(post("/api/coches")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.message").value("Permisos insuficientes"));
     }
 
     @Test
-    void testAdminPuedeGestionarCrudDeCoches() {
-        var loginResponse = cocheController.login(new CocheController.LoginRequest("admin", "pass123"));
-        assertEquals("ADMIN", loginResponse.role());
+    void testAdminPuedeGestionarCrudDeCoches() throws Exception {
+        String token = loginYObtenerToken("admin", "pass123", "ADMIN");
 
-        String authHeader = "Bearer " + loginResponse.token();
+        String createPayload = """
+            {
+              "marca": "BMW",
+              "modelo": "Serie 1",
+              "precio": 28000,
+              "enStock": true
+            }
+            """;
 
-        Coche creado = cocheController.crearCoche(
-            new CocheController.CocheRequest("BMW", "Serie 1", 28000, true),
-            authHeader
+        MvcResult createResult = mockMvc.perform(post("/api/coches")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createPayload))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").exists())
+            .andExpect(jsonPath("$.marca").value("BMW"))
+            .andReturn();
+
+        JsonNode creado = objectMapper.readTree(createResult.getResponse().getContentAsString());
+        String idCreado = creado.get("id").asText();
+
+        String updatePayload = """
+            {
+              "marca": "BMW",
+              "modelo": "Serie 1 Restyling",
+              "precio": 29500,
+              "enStock": false
+            }
+            """;
+
+        mockMvc.perform(put("/api/coches/{id}", idCreado)
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updatePayload))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.modelo").value("Serie 1 Restyling"))
+            .andExpect(jsonPath("$.precio").value(29500));
+
+        mockMvc.perform(get("/api/coches/{id}", idCreado)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(idCreado));
+
+        mockMvc.perform(delete("/api/coches/{id}", idCreado)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/coches/{id}", idCreado)
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Coche no encontrado"));
+    }
+
+    @Test
+    void testValidacionDeCocheDaBadRequest() throws Exception {
+        String token = loginYObtenerToken("admin", "pass123", "ADMIN");
+
+        String invalidPayload = """
+            {
+              "marca": "",
+              "modelo": "",
+              "precio": -10,
+              "enStock": true
+            }
+            """;
+
+        MvcResult result = mockMvc.perform(post("/api/coches")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(invalidPayload))
+            .andExpect(status().isBadRequest())
+            .andReturn();
+
+        String body = result.getResponse().getContentAsString();
+        assertTrue(body.contains("marca"));
+        assertTrue(body.contains("modelo"));
+    }
+
+    private String loginYObtenerToken(String username, String password, String expectedRole) throws Exception {
+        String payload = objectMapper.writeValueAsString(
+            java.util.Map.of("username", username, "password", password)
         );
 
-        assertNotNull(creado);
-        assertEquals("BMW", creado.getMarca());
+        MvcResult result = mockMvc.perform(post("/api/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token").exists())
+            .andExpect(jsonPath("$.role").value(expectedRole))
+            .andReturn();
 
-        Coche actualizado = cocheController.actualizarCoche(
-            creado.getId(),
-            new CocheController.CocheRequest("BMW", "Serie 1 Restyling", 29500, false),
-            authHeader
-        );
-
-        assertEquals("Serie 1 Restyling", actualizado.getModelo());
-        assertEquals(29500, actualizado.getPrecio());
-
-        Coche consultado = cocheController.getCochePorId(creado.getId(), authHeader);
-        assertEquals(creado.getId(), consultado.getId());
-
-        cocheController.eliminarCoche(creado.getId(), authHeader);
-
-        ResponseStatusException notFound = assertThrows(
-            ResponseStatusException.class,
-            () -> cocheController.getCochePorId(creado.getId(), authHeader)
-        );
-
-        assertEquals(HttpStatus.NOT_FOUND, notFound.getStatusCode());
+        JsonNode loginJson = objectMapper.readTree(result.getResponse().getContentAsString());
+        return loginJson.get("token").asText();
     }
 }

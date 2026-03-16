@@ -7,6 +7,9 @@ Backend REST del proyecto Concesionario Leo. Expone una API de coches en Spring 
 - Spring Boot 3.2
 - Maven
 - JUnit 5
+- MockMvc
+- JaCoCo
+- Springdoc OpenAPI
 
 ## Requisitos
 - JDK 17 instalado
@@ -21,14 +24,21 @@ mvn spring-boot:run
 La API queda disponible en:
 - http://localhost:8080/api/coches
 
+Documentacion Swagger:
+- http://localhost:8080/swagger-ui/index.html
+
 ## Pruebas
 ```bash
 mvn test
 ```
 
-Tests actuales:
-- Carga de contexto Spring
-- Validacion de respuesta no vacia del catalogo de coches
+Suite de calidad completa (tests + cobertura):
+```bash
+mvn verify
+```
+
+Cobertura JaCoCo generada en:
+- target/site/jacoco/index.html
 
 ## Build
 ```bash
@@ -45,8 +55,18 @@ java -jar target/proyecto-leo-backend-1.0-SNAPSHOT.jar
 
 ## Endpoints
 
+### POST /api/login
+Autentica usuario y devuelve token + rol.
+
+Credenciales disponibles:
+- usuario / password -> USER
+- admin / pass123 -> ADMIN
+
+### POST /api/logout
+Cierra sesion del token actual.
+
 ### GET /api/coches
-Devuelve el catalogo de coches.
+Devuelve el catalogo de coches (requiere token USER o ADMIN).
 
 Ejemplo de respuesta:
 ```json
@@ -62,7 +82,19 @@ Ejemplo de respuesta:
 ```
 
 ### GET /api/coches/{id}
-Devuelve un mensaje de ejemplo con el id solicitado.
+Devuelve un coche por id (requiere token USER o ADMIN).
+
+### POST /api/coches
+Crea un coche (solo ADMIN).
+
+### PUT /api/coches/{id}
+Actualiza un coche (solo ADMIN).
+
+### DELETE /api/coches/{id}
+Elimina un coche (solo ADMIN).
+
+Todas las peticiones autenticadas deben incluir:
+- Authorization: Bearer <token>
 
 ## CI/CD (GitLab + Jenkins)
 Este repositorio se integra con Jenkins mediante Shared Library corporativa y Jenkinsfile en raiz.
@@ -77,8 +109,12 @@ Puntos importantes:
 ```text
 src/main/java/com/leo/backend/
 	App.java
-	Coche.java
-	CocheController.java
+	controller/
+		CocheController.java
+	error/
+		GlobalExceptionHandler.java
+	model/
+		Coche.java
 
 src/test/java/com/leo/backend/
 	AppTest.java
@@ -86,4 +122,4 @@ src/test/java/com/leo/backend/
 
 ## Notas
 - CORS esta habilitado en el controlador para permitir consumo desde frontend.
-- application.properties existe pero esta vacio (configuracion por defecto de Spring Boot).
+- La API devuelve errores consistentes en JSON (status, error, message, path).

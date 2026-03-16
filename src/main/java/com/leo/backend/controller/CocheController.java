@@ -2,6 +2,9 @@ package com.leo.backend.controller;
 
 import com.leo.backend.model.Coche;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -39,10 +42,7 @@ public class CocheController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@RequestBody LoginRequest loginRequest) {
-        if (loginRequest == null || loginRequest.username() == null || loginRequest.password() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Peticion de login invalida");
-        }
+    public LoginResponse login(@Valid @RequestBody LoginRequest loginRequest) {
 
         UserCredentials credenciales = credencialesPorUsuario.get(loginRequest.username().trim());
         if (credenciales == null || !credenciales.password().equals(loginRequest.password())) {
@@ -82,10 +82,9 @@ public class CocheController {
 
     @PostMapping("/coches")
     @ResponseStatus(HttpStatus.CREATED)
-    public Coche crearCoche(@RequestBody CocheRequest cocheRequest,
+    public Coche crearCoche(@Valid @RequestBody CocheRequest cocheRequest,
                             @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         validarSesionAdmin(authorizationHeader);
-        validarCocheRequest(cocheRequest);
 
         String id = String.valueOf(secuenciaIds.incrementAndGet());
         Coche nuevoCoche = new Coche(
@@ -102,10 +101,9 @@ public class CocheController {
 
     @PutMapping("/coches/{id}")
     public Coche actualizarCoche(@PathVariable String id,
-                                 @RequestBody CocheRequest cocheRequest,
+                                 @Valid @RequestBody CocheRequest cocheRequest,
                                  @RequestHeader(value = "Authorization", required = false) String authorizationHeader) {
         validarSesionAdmin(authorizationHeader);
-        validarCocheRequest(cocheRequest);
 
         if (!inventario.containsKey(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Coche no encontrado");
@@ -163,17 +161,6 @@ public class CocheController {
         return token;
     }
 
-    private void validarCocheRequest(CocheRequest cocheRequest) {
-        if (cocheRequest == null
-            || cocheRequest.marca() == null
-            || cocheRequest.modelo() == null
-            || cocheRequest.marca().trim().isEmpty()
-            || cocheRequest.modelo().trim().isEmpty()
-            || cocheRequest.precio() < 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Datos del coche invalidos");
-        }
-    }
-
     private int parsearId(String id) {
         try {
             return Integer.parseInt(id);
@@ -182,8 +169,18 @@ public class CocheController {
         }
     }
 
-    public record CocheRequest(String marca, String modelo, int precio, boolean enStock) {}
-    public record LoginRequest(String username, String password) {}
+    public record CocheRequest(
+        @NotBlank(message = "La marca es obligatoria") String marca,
+        @NotBlank(message = "El modelo es obligatorio") String modelo,
+        @PositiveOrZero(message = "El precio no puede ser negativo") int precio,
+        boolean enStock
+    ) {}
+
+    public record LoginRequest(
+        @NotBlank(message = "El usuario es obligatorio") String username,
+        @NotBlank(message = "La contrasena es obligatoria") String password
+    ) {}
+
     public record LoginResponse(String token, String username, String role) {}
 
     private record UserCredentials(String password, String role) {}
