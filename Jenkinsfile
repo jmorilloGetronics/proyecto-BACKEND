@@ -29,17 +29,16 @@ pipeline {
 
         stage('SonarQube (optional)') {
             when {
-                allOf {
-                    expression { env.SONAR_HOST_URL?.trim() }
-                    expression { env.SONAR_TOKEN?.trim() }
-                }
+                expression { env.SONAR_HOST_URL?.trim() }
             }
             steps {
-                script {
-                    if (isUnix()) {
-                        sh 'chmod +x mvnw && ./mvnw -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
-                    } else {
-                        bat '.\\mvnw.cmd -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.token=%SONAR_TOKEN%'
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    script {
+                        if (isUnix()) {
+                            sh 'chmod +x mvnw && ./mvnw -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
+                        } else {
+                            bat '.\\mvnw.cmd -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.token=%SONAR_TOKEN%'
+                        }
                     }
                 }
             }
