@@ -5,6 +5,7 @@ pipeline {
         disableConcurrentBuilds()
         timestamps()
         buildDiscarder(logRotator(numToKeepStr: '20'))
+        skipDefaultCheckout(true)
     }
 
     stages {
@@ -18,9 +19,9 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'mvn -B -ntp clean verify'
+                        sh 'chmod +x mvnw && ./mvnw -B -ntp clean verify'
                     } else {
-                        bat 'mvn -B -ntp clean verify'
+                        bat '.\\mvnw.cmd -B -ntp clean verify'
                     }
                 }
             }
@@ -36,9 +37,9 @@ pipeline {
             steps {
                 script {
                     if (isUnix()) {
-                        sh 'mvn -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
+                        sh 'chmod +x mvnw && ./mvnw -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN'
                     } else {
-                        bat 'mvn -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.token=%SONAR_TOKEN%'
+                        bat '.\\mvnw.cmd -B -ntp sonar:sonar -Dsonar.projectKey=proyecto-leo-backend -Dsonar.host.url=%SONAR_HOST_URL% -Dsonar.token=%SONAR_TOKEN%'
                     }
                 }
             }
